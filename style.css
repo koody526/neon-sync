@@ -1,0 +1,701 @@
+/* ===============================
+   NEON SYNC 이미지 배경형 v2.9
+   외부 폰트 없이 오프라인 실행 가능
+   =============================== */
+
+:root {
+    --cyan: #00d2ff;
+    --pink: #ff4abf;
+    --green: #00ff41;
+    --yellow: #ffe600;
+    --red: #ff3b30;
+    --blue: #008cff;
+    --dark: #050713;
+    --panel: rgba(2, 10, 25, 0.76);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 10%, rgba(0,210,255,0.12), transparent 35%), radial-gradient(circle at 90% 80%, rgba(255,74,191,0.12), transparent 40%), #05050c;
+    color: white;
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;
+}
+
+.page {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    padding: 22px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.machine-wrap {
+    position: relative;
+    width: min(760px, 95vw);
+    line-height: 1;
+}
+
+#machine-img {
+    width: 100%;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* --------------------------------
+   음료 슬롯 영역
+   이미지 안 큰 진열장 위치에만 오버레이를 올리고,
+   내부 8개 슬롯은 CSS Grid가 4x2로 자동 계산해 배치한다.
+-------------------------------- */
+#product-section {
+    position: absolute;
+    left: 15.2%;
+    top: 25.2%;
+    width: 51.5%;
+    height: 37.0%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    column-gap: 5.0%;
+    row-gap: 10.5%;
+    align-items: start;
+    justify-items: center;
+    pointer-events: none;
+}
+
+.drink-card {
+    width: 76%;
+    height: 66%;
+    margin: 0 auto;
+    align-self: start;
+    justify-self: center;
+    padding: 2.2% 3.0%;
+    border: 1px solid rgba(0, 210, 255, 0.8);
+    border-radius: 7px;
+    background: rgba(0, 10, 25, 0.58);
+    color: #e9fbff;
+    text-align: center;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: 0.2s;
+    box-shadow: inset 0 0 10px rgba(0, 210, 255, 0.12);
+    --shift-x: 0px;
+    --shift-y: 0px;
+    transform: translate(var(--shift-x), var(--shift-y));
+}
+
+    /* --------------------------------
+   음료 카드별 위치 미세 조정
+
+   x값:
+   + 오른쪽 이동
+   - 왼쪽 이동
+
+   y값:
+   + 아래 이동
+   - 위 이동
+-------------------------------- */
+
+    /* 위쪽 열 */
+    .drink-card:nth-child(1) {
+        --shift-x: 5px;
+        --shift-y: 5px;
+    }
+
+    .drink-card:nth-child(2) {
+        --shift-x: 0px;
+        --shift-y: 5px;
+    }
+
+    .drink-card:nth-child(3) {
+        --shift-x: -6px;
+        --shift-y: 5px;
+    }
+
+    .drink-card:nth-child(4) {
+        --shift-x: -13px;
+        --shift-y: 5px;
+    }
+
+    /* 아래쪽 열: 최종 미세 조정 */
+    .drink-card:nth-child(5) {
+        --shift-x: 6px;
+        --shift-y: 19px;
+    }
+
+    .drink-card:nth-child(6) {
+        --shift-x: 0px;
+        --shift-y: 19px;
+    }
+
+    .drink-card:nth-child(7) {
+        --shift-x: -6px;
+        --shift-y: 19px;
+    }
+
+    .drink-card:nth-child(8) {
+        --shift-x: -14px;
+        --shift-y: 19px;
+    }
+
+    .drink-card:hover:not(.locked):not(.soldout) {
+        transform: translate(var(--shift-x), calc(var(--shift-y) - 2px));
+        box-shadow: 0 0 12px rgba(0, 210, 255, 0.42), inset 0 0 12px rgba(0, 210, 255, 0.18);
+    }
+
+    .drink-card.active {
+        border-color: var(--green);
+        box-shadow: 0 0 13px rgba(0, 255, 65, 0.52), inset 0 0 10px rgba(0, 255, 65, 0.18);
+    }
+
+    .drink-card.locked {
+        opacity: 0.68;
+        filter: grayscale(45%);
+    }
+
+    .drink-card.soldout {
+        opacity: 0.38;
+        filter: grayscale(100%);
+    }
+
+/* --------------------------------
+   음료 카드 내부 정보
+-------------------------------- */
+.slot-number {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: clamp(6px, 0.66vw, 8px);
+    color: var(--cyan);
+    letter-spacing: 0.04em;
+    margin-bottom: 1px;
+    transform: translateY(-2px);
+}
+
+.drink-icon {
+    width: clamp(42px, 5vw, 62px);
+    height: clamp(42px, 5vw, 62px);
+    object-fit: contain;
+    display: block;
+    margin: -2px auto 0;
+    filter: drop-shadow(0 0 7px rgba(0, 210, 255, 0.9));
+
+}
+/* =========================
+   음료 아이콘 개별 위치 보정
+   카드 위치는 유지하고, 아이콘 이미지만 살짝 조정
+   ========================= */
+
+.drink-card:nth-child(1) .drink-icon {
+    transform: translateX(-2px); /* 생수 */
+}
+
+.drink-card:nth-child(2) .drink-icon {
+    transform: translateX(-1px); /* 보리차 */
+}
+
+.drink-card:nth-child(3) .drink-icon {
+    transform: translateX(-1px); /* 제로콜라 */
+}
+
+.drink-card:nth-child(4) .drink-icon {
+    transform: translateX(-2px); /* 이온음료 */
+}
+
+.drink-card:nth-child(5) .drink-icon {
+    transform: translateX(-1px); /* 딥러닝 아메리카노 */
+}
+
+.drink-card:nth-child(6) .drink-icon {
+    transform: translateX(-1px); /* 알고리즘 콜드브루 */
+}
+
+.drink-card:nth-child(7) .drink-icon {
+    transform: translateX(-1px); /* 에너지드링크 */
+}
+
+.drink-card:nth-child(8) .drink-icon {
+    transform: translateX(-2px); /* VR부스터 */
+}
+
+.drink-name {
+    font-size: clamp(8px, 0.82vw, 10px);
+    font-weight: 700;
+    line-height: 1.15;
+    min-height: 1.95em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: keep-all;
+}
+
+.drink-price,
+.drink-stock {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: clamp(6px, 0.66vw, 8px);
+    line-height: 1.15;
+}
+
+.drink-price {
+    color: var(--cyan);
+    margin-top: 2px;
+}
+
+.drink-stock {
+    color: #9eefff;
+}
+
+    .drink-stock.low {
+        color: var(--yellow);
+    }
+
+.drink-state {
+    font-size: clamp(6px, 0.66vw, 8px);
+    margin-top: 2px;
+    color: var(--green);
+    transform: translateY(3px);
+}
+
+.drink-card.locked .drink-state {
+    color: #aaa;
+}
+
+.drink-card.soldout .drink-state {
+    color: #ff6666;
+}
+
+/* --------------------------------
+   우측 모니터 상태 표시
+-------------------------------- */
+#screen-hotspot {
+    position: absolute;
+    left: 73.2%;
+    top: 24.0%;
+    width: 16.2%;
+    height: 9.0%;
+    z-index: 9;
+}
+
+#machine-screen {
+    position: absolute;
+    left: 73.4%;
+    top: 24.2%;
+    width: 15.2%;
+    height: 7.8%;
+    padding: 1.0% 1.0%;
+    border: 1px solid rgba(0,210,255,0.68);
+    border-radius: 8px;
+    background: rgba(0, 12, 30, 0.80);
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.screen-title {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: clamp(6px, 0.72vw, 9px);
+    color: var(--cyan);
+    letter-spacing: 0.14em;
+    margin-bottom: 1px;
+}
+
+#screen-message {
+    font-size: clamp(9px, 1.05vw, 13px);
+    line-height: 1.15;
+    color: #e9fbff;
+    min-height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: keep-all;
+}
+
+#current-amount {
+    font-family: Consolas, 'Courier New', monospace;
+    color: var(--green);
+    font-size: clamp(10px, 1.2vw, 15px);
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+#pattern-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    min-height: 8px;
+    margin-top: 2px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    border: 1px solid #444;
+}
+
+    .dot.red {
+        background: var(--red);
+        box-shadow: 0 0 6px var(--red);
+    }
+
+    .dot.blue {
+        background: var(--blue);
+        box-shadow: 0 0 6px var(--blue);
+    }
+
+    .dot.green {
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+    }
+
+    .dot.yellow {
+        background: var(--yellow);
+        box-shadow: 0 0 6px var(--yellow);
+    }
+
+/* --------------------------------
+   투명 클릭 영역 공통
+-------------------------------- */
+.hotspot,
+.color-hit,
+.pay-hit {
+    position: absolute;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 20;
+    padding: 0;
+}
+
+    .hotspot:focus,
+    .color-hit:focus,
+    .pay-hit:focus {
+        outline: none;
+    }
+
+/* 색상 인증 버튼 */
+.color-hit {
+    width: 6.9%;
+    height: 5.3%;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    opacity: 1;
+}
+
+.hit-red {
+    left: 72.7%;
+    top: 39.4%;
+}
+
+.hit-blue {
+    left: 81.4%;
+    top: 39.4%;
+}
+
+.hit-green {
+    left: 72.7%;
+    top: 45.7%;
+}
+
+.hit-yellow {
+    left: 81.4%;
+    top: 45.7%;
+}
+
+.color-hit.flash {
+    opacity: 1;
+    box-shadow: 0 0 18px 6px rgba(255,255,255,0.85);
+    border: 2px solid white;
+}
+
+.color-hit:disabled {
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+/* 결제 아이콘 버튼 */
+.pay-hit {
+    top: 55.8%; /* 기존 58.4% → 위로 이동 */
+    width: 5.4%;
+    height: 4.8%;
+    border-radius: 8px;
+}
+
+.pay-500 {
+    left: 72.2%; /* 기존 75.9% → 왼쪽 이동 */
+}
+
+.pay-1000 {
+    left: 78.2%; /* 기존 82.3% → 왼쪽 이동 */
+}
+
+.pay-5000 {
+    left: 84.0%; /* 기존 88.8% → 왼쪽 이동 */
+}
+
+/* 반환 버튼 */
+#refund-hit {
+    left: 76.3%; /* 기존 79.9% → 왼쪽 이동 */
+    top: 66.2%; /* 기존 69.7% → 위로 이동 */
+    width: 8.5%;
+    height: 6.0%;
+    border-radius: 12px;
+}
+
+
+
+/* --------------------------------
+   배출구 표시
+-------------------------------- */
+#dispense-area {
+    position: absolute;
+    left: 24.7%;
+    top: 81.8%;
+    width: 43.7%;
+    height: 7.1%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 8;
+    text-align: center;
+    pointer-events: none;
+}
+
+#dispense-emoji {
+    font-size: clamp(18px, 2.2vw, 26px);
+    line-height: 1;
+    min-height: 1em;
+}
+
+.dispense-icon {
+    width: clamp(42px, 4.4vw, 62px);
+    height: clamp(42px, 4.4vw, 62px);
+    object-fit: contain;
+    filter: drop-shadow(0 0 7px rgba(0, 210, 255, 0.8));
+}
+
+#dispense-text {
+    font-size: clamp(11px, 1.3vw, 16px);
+    line-height: 1.2;
+    color: var(--green);
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(0,255,65,0.9);
+    word-break: keep-all;
+}
+
+@keyframes dropIn {
+    0% {
+        transform: translateY(-18px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.dispense-animate {
+    animation: dropIn 0.35s ease forwards;
+}
+
+/* --------------------------------
+   오른쪽 조작 설명 패널
+-------------------------------- */
+.guide-panel {
+    width: 260px;
+    padding: 18px;
+    border: 1px solid rgba(0,210,255,0.42);
+    border-radius: 14px;
+    background: rgba(3, 8, 24, 0.86);
+    box-shadow: 0 0 16px rgba(0,210,255,0.08);
+}
+
+    .guide-panel h2 {
+        margin: 0 0 12px;
+        color: var(--cyan);
+        font-size: 1.25rem;
+    }
+
+    .guide-panel p {
+        margin: 0 0 12px;
+        line-height: 1.65;
+        font-size: 0.9rem;
+    }
+
+    .guide-panel .accent {
+        color: #ff8fe0;
+        font-size: 0.82rem;
+    }
+
+/* --------------------------------
+   반응형 / 스마트폰 화면 최적화
+   PC에서는 자판기 + 설명 패널을 가로 배치하고,
+   태블릿/스마트폰에서는 세로 배치한다.
+-------------------------------- */
+@media screen and (max-width: 1100px) {
+    .page {
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 10px;
+    }
+
+    .machine-wrap {
+        width: min(96vw, 760px);
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    .guide-panel {
+        width: min(96vw, 760px);
+        max-width: 760px;
+        margin: 0 auto 20px;
+        padding: 14px;
+    }
+
+        .guide-panel h2 {
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+        }
+
+        .guide-panel p {
+            font-size: 0.9rem;
+            line-height: 1.55;
+            margin-bottom: 10px;
+        }
+
+        .guide-panel .accent {
+            font-size: 0.82rem;
+        }
+}
+
+/* --------------------------------
+   아주 작은 스마트폰 화면 보정
+   화면 폭이 480px 이하일 때 카드 글자와 아이콘을 조금 조정한다.
+-------------------------------- */
+@media screen and (max-width: 480px) {
+    .page {
+        padding: 6px;
+        gap: 10px;
+    }
+
+    .machine-wrap {
+        width: 100%;
+    }
+
+    #product-section {
+        left: 15.0%;
+        top: 25.0%;
+        width: 52.5%;
+        height: 37.8%;
+        column-gap: 4.2%;
+        row-gap: 9.2%;
+    }
+
+    .drink-card {
+        width: 82%;
+        height: 72%;
+        padding: 2.6% 3.0%;
+        border-radius: 5px;
+    }
+
+    .slot-number {
+        font-size: 6px;
+        transform: translateY(-2px);
+    }
+
+    .drink-icon {
+        width: 28px;
+        height: 28px;
+        margin: -1px auto 0;
+    }
+
+    .drink-name {
+        font-size: 8px;
+        line-height: 1.1;
+        min-height: 2em;
+    }
+
+    .drink-price,
+    .drink-stock {
+        font-size: 6px;
+        line-height: 1.1;
+    }
+
+    .drink-state {
+        font-size: 6px;
+        line-height: 1.1;
+        transform: translateY(2px);
+    }
+
+    #machine-screen {
+        left: 73.4%;
+        top: 24.2%;
+        width: 15.2%;
+        height: 7.8%;
+    }
+
+    .screen-title {
+        font-size: 6px;
+    }
+
+    #screen-message {
+        font-size: 8px;
+        line-height: 1.1;
+    }
+
+    #current-amount {
+        font-size: 9px;
+    }
+
+    #pattern-dots {
+        gap: 2px;
+        min-height: 6px;
+    }
+
+    .dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    #dispense-text {
+        font-size: 10px;
+    }
+
+    .dispense-icon {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* --------------------------------
+   디버그용
+   필요할 때 body에 class="debug"를 붙이면 위치 확인 가능
+-------------------------------- */
+body.debug #product-section,
+body.debug #machine-screen,
+body.debug #dispense-area {
+    outline: 1px dashed rgba(255,255,255,0.7);
+}
+
+body.debug .drink-card {
+    outline: 1px solid rgba(255,0,0,0.65);
+}

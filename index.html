@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON SYNC 스마트 음료 자판기</title>
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+  <main class="page">
+    <section class="machine-wrap" aria-label="NEON SYNC 스마트 음료 자판기">
+      <img id="machine-img" src="neon_sync_machine.png" alt="NEON SYNC 스마트 음료 자판기 배경">
+
+      <!-- 음료 슬롯: JavaScript 배열로 8개 자동 출력, CSS Grid로 4x2 자동 배치 -->
+      <div id="product-section"></div>
+
+      <!-- 우측 모니터: 상태 표시 + 인증 시작 클릭 영역 -->
+      <button id="screen-hotspot" class="hotspot" title="인증 시작"></button>
+      <div id="machine-screen">
+        <div class="screen-title">SYSTEM</div>
+        <div id="screen-message">금액을 투입하세요.</div>
+        <div id="current-amount">0원</div>
+        <div id="pattern-dots"></div>
+      </div>
+
+      <!-- NEON SYNC 4색 인증 버튼: 배경 이미지의 버튼 위치 위에 투명 버튼 배치 -->
+      <button class="color-hit hit-red" data-color="0" title="빨강" disabled></button>
+      <button class="color-hit hit-blue" data-color="1" title="파랑" disabled></button>
+      <button class="color-hit hit-green" data-color="2" title="초록" disabled></button>
+      <button class="color-hit hit-yellow" data-color="3" title="노랑" disabled></button>
+
+      <!-- 결제 버튼: 이미지 안 결제 아이콘 3개 위에 클릭 영역 배치 -->
+      <button class="pay-hit pay-500" data-money="500" title="500원 투입"></button>
+      <button class="pay-hit pay-1000" data-money="1000" title="1000원 투입"></button>
+      <button class="pay-hit pay-5000" data-money="5000" title="5000원 투입"></button>
+
+      <!-- 환불 버튼 -->
+      <button id="refund-hit" class="hotspot" title="잔돈 반환"></button>
+
+      <!-- 배출구 표시 -->
+      <div id="dispense-area">
+        <div id="dispense-emoji"></div>
+        <div id="dispense-text">배출구 대기 중</div>
+      </div>
+    </section>
+
+    <section class="guide-panel">
+        <h2>조작 방법</h2>
+
+        <p>
+            <b>금액 투입</b><br>
+            카드 아이콘 = 500원<br>
+            휴대폰 아이콘 = 1,000원<br>
+            무선결제 아이콘 = 5,000원
+        </p>
+
+        <p>
+            <b>음료 구매</b><br>
+            일반 음료는 금액이 충분하면 바로 구매할 수 있습니다.
+        </p>
+
+        <p>
+            <b>NEON SYNC 인증</b><br>
+            고카페인 음료는 우측 모니터를 눌러 인증을 시작한 뒤,
+            점등되는 4색 패턴을 같은 순서로 입력해야 구매할 수 있습니다.
+        </p>
+
+        <p>
+            <b>잔돈 반환</b><br>
+            분홍색 되돌리기 버튼을 누르면 남은 금액이 반환됩니다.
+        </p>
+
+        <p class="accent">
+            ※ 구매 시 재고가 1개씩 감소하며, 재고가 0개가 되면 품절 처리됩니다.
+        </p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

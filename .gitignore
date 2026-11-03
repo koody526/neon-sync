@@ -1,0 +1,30 @@
+# Local/editor/build output
+__pycache__/
+*.py[cod]
+.venv/
+.vscode/
+.vs/
+Library/
+Temp/
+Logs/
+obj/
+Build/
+Builds/
+UserSettings/
+*.exe
+*.pdb
+*.obj
+*.ilk
+*.tlog
+*.swp
+# Credentials/configuration excluded from publication
+.env
+.env.*
+*service-account*.json
+*serviceAccount*.json
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.jks
+*.pem
+*.p12
